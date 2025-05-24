@@ -1,7 +1,21 @@
 from sys import argv
 
-def abre_arquivo() -> None:
-    nome_arq = 'filmes.dat' # Arquivo a ser aberto.
-    arq = open(nome_arq, 'rb+')  # Arquivo a ser lido e escrito.
+def main() -> None:
+    try:
+        data = open("filmes.dat", "rb+")
+        flag: str = argv[1]
+        match flag:
+            case "-e":
+                pass
+            case "-p":
+                pass
+            case "-c":
+                pass
+        data.close()
+    except:
+        pass
+    finally:
+        pass
 
-    arq.close()
+if __name__ == "__main__":
+    main() 

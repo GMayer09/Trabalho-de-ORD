@@ -1,0 +1,20 @@
+b 113
+b 34
+b 221
+i 12|O Silêncio dos Inocentes|Jonathan Demme|1991|Crime, Drama, Suspense|118|Jodie Foster, Anthony Hopkins, Lawrence A. Bonney|
+r 85
+r 20
+r 311
+r 123
+r 7
+r 114
+i 72|O Senhor dos Anéis: O Retorno do Rei|Peter Jackson|2003|Aventura, Fantasia|201|Elijah Wood, Ian McKellen, Viggo Mortensen|
+i 150|O Tigre e o Dragão|Ang Lee|2000|Ação, Aventura, Fantasia|120|Chow Yun|
+i 47|Jurassic World|Colin Trevorrow|2015|Ação, Aventura, Ficção Científica|124|Chris Pratt, Bryce Dallas Howard, Vincent D'Onofrio|
+r 160
+b 150
+r 12
+b 29
+b 7
+i 44|Como Treinar o Seu Dragão|Dean DeBlois, Chris Sanders|2010|Animação, Aventura, Família|98|Jay Baruchel, Gerard Butler, Craig Ferguson|
+i 126|Corações de Ferro|David Ayer|2014|Ação, Drama, Guerra|134|Brad Pitt, Shia LaBeouf, Logan Lerman|

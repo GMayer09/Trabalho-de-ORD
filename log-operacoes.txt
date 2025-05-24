@@ -1,0 +1,72 @@
+Busca pelo registro de chave "113"
+113|Star Wars: O Retorno de Jedi|Richard Marquand|1983|Aventura, Fantasia, Ficção Científica|131|Mark Hamill, Harrison Ford, Carrie Fisher| (142 bytes)
+Local: offset = 1356 bytes (0x54c)
+
+Busca pelo registro de chave "34"
+34|O Labirinto do Fauno|Guillermo del Toro|2006|Drama, Fantasia, Guerra|118|Ivana Baquero, Sergi López, Maribel Verdú| (120 bytes)
+Local: offset = 2146 bytes (0x862)
+
+Busca pelo registro de chave "221"
+Erro: registro nao encontrado!
+
+Inserção do registro de chave "12" (126 bytes)
+Local: fim do arquivo
+
+Remoção do registro de chave "85"
+Registro removido! (131 bytes)
+Local: offset = 344 bytes (0x158)
+
+Remoção do registro de chave "20"
+Registro removido! (93 bytes)
+Local: offset = 9976 bytes (0x26f8)
+
+Remoção do registro de chave "311"
+Erro: registro nao encontrado!
+
+Remoção do registro de chave "123"
+Registro removido! (106 bytes)
+Local: offset = 7822 bytes (0x1e8e)
+
+Remoção do registro de chave "7"
+Registro removido! (110 bytes)
+Local: offset = 2748 bytes (0xabc)
+
+Remoção do registro de chave "114"
+Registro removido! (135 bytes)
+Local: offset = 2611 bytes (0xa33)
+
+Inserção do registro de chave "72" (126 bytes)
+Local: offset = 344 bytes (0x158)
+
+Inserção do registro de chave "150" (77 bytes)
+Local: offset = 9976 bytes (0x26f8)
+
+Inserção do registro de chave "47" (134 bytes)
+Local: offset = 2611 bytes (0xa33)
+
+Remoção do registro de chave "160"
+Registro removido! (109 bytes)
+Local: offset = 5260 bytes (0x148c)
+
+Busca pelo registro de chave "150"
+150|O Tigre e o Dragão|Ang Lee|2000|Ação, Aventura, Fantasia|120|Chow Yun| (77 bytes)
+Local: offset = 9976 bytes (0x26f8)
+
+Remoção do registro de chave "12"
+Registro removido! (126 bytes)
+Local: offset = 11929 bytes (0x2e99)
+
+Busca pelo registro de chave "29"
+29|A Rede Social|David Fincher|2010|Biografia, Drama|120|Jesse Eisenberg, Andrew Garfield, Justin Timberlake| (109 bytes)
+Local: offset = 4 bytes (0x4)
+
+Busca pelo registro de chave "7"
+Erro: registro nao encontrado!
+
+Inserção do registro de chave "44" (141 bytes)
+Local: fim do arquivo
+
+Inserção do registro de chave "126" (104 bytes)
+Local: offset = 7822 bytes (0x1e8e)
+
+As operações do arquivo dados/operacoes.txt foram executadas com sucesso!

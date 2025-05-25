@@ -1,6 +1,7 @@
 from sys import argv
 
 def main() -> None:
+    data = None
     try:
         data = open("filmes.dat", "rb+")
         flag: str = argv[1]
@@ -11,26 +12,27 @@ def main() -> None:
                 pass
             case "-c":
                 pass
-    except:
-        print('Erro')
+    except Exception as err:
+        print('Erro: ', err)
     finally: #Roda depois de tudo, mesmo se cair no except
         if data: #Caso o arquivo ainda esteja aberto
             print('Fechando arquivo')
             data.close() #Fecha o arquivo
 
 def execute(dataBase, arqName: str):
-    with open(arqName, "r") as arq:
-        instructions: list = arq.read().split('\n')
+    with open(arqName, "r") as arq: # Abre o arquivo de instruções
+        instructions: list = arq.read().split('\n') # Quebra o arquivo de instruções em uma lista
         for i in instructions:
-            [flag, *reg] = i.split()
-            strReg = "".join(reg)
+            strReg: str = i.strip() # Limpa possíveis espaços no inicio e fim da linha
+            flag: str = strReg[0] # Primeiro caracter da linha de instrução
+            regData: str = strReg[1:] # Resto da linha de instrução
             match flag:
-                case "b":
-                    search(int(strReg), dataBase)
-                case "i":
-                    insert(strReg, dataBase)
-                case "r":
-                    remove(strReg, dataBase)
+                case "b": # Busca
+                    search(int(regData), dataBase)
+                case "i": # Inserção
+                    insert(regData, dataBase)
+                case "r": # Remoção
+                    remove(regData, dataBase)
             
 def search(regKey, dataBase):
     print(f'Busca pelo registro de chave "{regKey}"')

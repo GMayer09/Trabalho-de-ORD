@@ -14,10 +14,10 @@ def main() -> None:
                 pass
     except Exception as err:
         print('Erro: ', err)
-    finally: #Roda depois de tudo, mesmo se cair no except
-        if data: #Caso o arquivo ainda esteja aberto
+    finally: # Roda depois de tudo, mesmo se cair no except
+        if data: # Caso o arquivo ainda esteja aberto
             print('Fechando arquivo')
-            data.close() #Fecha o arquivo
+            data.close() # Fecha o arquivo
 
 def execute(dataBase, arqName: str):
     with open(arqName, "r") as arq: # Abre o arquivo de instruções
@@ -34,15 +34,15 @@ def execute(dataBase, arqName: str):
                 case "r": # Remoção
                     remove(regData, dataBase)
             
-def search(regKey, dataBase):
+def search(regKey, dataBase): # A função faz a pesquisa de um dado ou chave.
     print(f'Busca pelo registro de chave "{regKey}"')
 
-def insert(data, dataBase):
+def insert(data, dataBase): # A função faz a inserção de um dado ou chave.
     regLength = 0
     regKey = 0
     print(f'Inserção do registro de chave "{regKey}" ({regLength} bytes)')
 
-def remove(data, dataBase):
+def remove(data, dataBase): # A função faz a remoção de um dado ou chave.
     regKey = 0
     print(f'Remoção do registro de chave "{regKey}"')
 

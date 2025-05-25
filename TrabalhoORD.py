@@ -37,7 +37,7 @@ def execute(dataBase, arqName: str):
 def search(regKey, dataBase): # A função faz a pesquisa de um dado ou chave.
     print(f'Busca pelo registro de chave "{regKey}"')
 
-def insert(data, dataBase): # A função faz a inserção de um dado ou chave.
+def insert(data, dataBase): # A função faz a inserção de um dado ou chave. Com a utilização da estratégia de Best fit.
     regLength = 0
     regKey = 0
     print(f'Inserção do registro de chave "{regKey}" ({regLength} bytes)')

@@ -6,11 +6,11 @@ def main() -> None:
         data = open("filmes.dat", "rb+")
         flag: str = argv[1]
         match flag:
-            case "-e":
+            case "-e": # A execução do arquivo de operações será acionada pela linha de comando.
                 execute(data, argv[2])
-            case "-p":
+            case "-p": # A funcionalidade de impressão da LED também será acessada via linha de comando.
                 pass
-            case "-c":
+            case "-c": # A funcionalidade de compactação do arquivo filmes.dat também será acessada via linha de comando.
                 pass
     except Exception as err:
         print('Erro: ', err)

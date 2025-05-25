@@ -28,14 +28,32 @@ def execute(dataBase, arqName: str):
             regData: str = strReg[1:] # Resto da linha de instrução
             match flag:
                 case "b": # Busca
-                    search(int(regData), dataBase)
+                    search(regData, dataBase)
                 case "i": # Inserção
                     insert(regData, dataBase)
                 case "r": # Remoção
                     remove(regData, dataBase)
             
-def search(regKey, dataBase): # A função faz a pesquisa de um dado ou chave.
+def search(regKey, dataBase): # A função faz a pesquisa de um dado ou chave
+    regKey = regKey.strip()
     print(f'Busca pelo registro de chave "{regKey}"')
+    cabeçalho = int.from_bytes(dataBase.read(4), signed=True) # Cabeçalho ta inutil aqui
+    buffer = read_reg(dataBase)
+    while buffer:
+        reg: list = buffer.split("|")
+        id = reg[0]
+        if id == regKey:
+            print(f'{buffer} ({len(buffer)} bytes)')
+            print(f'Local: offset = {''} bytes ({''})') # Falta encontrar essas infromações
+            break
+        buffer = read_reg(dataBase)
+
+def read_reg(data):
+    regLength = int.from_bytes(data.read(2)) # Lê o tamanho do registro
+    if regLength <= 0: return '' # Caso o registro tenha tamanho <= 0 retorna uma string vazia
+    
+    reg = data.read(regLength) # Lê o registro
+    return reg.decode()
 
 def insert(data, dataBase): # A função faz a inserção de um dado ou chave. Com a utilização da estratégia de Best fit.
     regLength = 0

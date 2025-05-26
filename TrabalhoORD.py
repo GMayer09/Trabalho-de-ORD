@@ -23,30 +23,36 @@ def execute(dataBase, arqName: str):
     with open(arqName, "r") as arq: # Abre o arquivo de instruções
         instructions: list = arq.read().split('\n') # Quebra o arquivo de instruções em uma lista
         for i in instructions:
-            strReg: str = i.strip() # Limpa possíveis espaços no inicio e fim da linha
-            flag: str = strReg[0] # Primeiro caracter da linha de instrução
-            regData: str = strReg[1:] # Resto da linha de instrução
-            match flag:
+            dataBase.seek(0)
+            header = int.from_bytes(dataBase.read(4), signed=True)
+            strInstruction: str = i.strip() # Limpa possíveis espaços no inicio e fim da linha
+            instructionFlag: str = strInstruction[0] # Primeiro caracter da linha de instrução
+            instructionData: str = strInstruction[1:] # Resto da linha de instrução
+            match instructionFlag:
                 case "b": # Busca
-                    search(regData, dataBase)
+                    search(instructionData, dataBase)
                 case "i": # Inserção
-                    insert(regData, dataBase)
+                    insert(instructionData, header, dataBase)
                 case "r": # Remoção
-                    remove(regData, dataBase)
+                    remove(instructionData, header, dataBase)
+            print('')
             
 def search(regKey, dataBase): # A função faz a pesquisa de um dado ou chave
     regKey = regKey.strip()
     print(f'Busca pelo registro de chave "{regKey}"')
-    cabeçalho = int.from_bytes(dataBase.read(4), signed=True) # Cabeçalho ta inutil aqui
+    byteOffset: int = dataBase.tell()
     buffer = read_reg(dataBase)
     while buffer:
         reg: list = buffer.split("|")
         id = reg[0]
         if id == regKey:
             print(f'{buffer} ({len(buffer)} bytes)')
-            print(f'Local: offset = {''} bytes ({''})') # Falta encontrar essas infromações
-            break
+            print(f'Local: offset = {byteOffset} bytes ({''})')
+            return # Quebra o loop de busca pois achou o registro que estava procurando
+        byteOffset = dataBase.tell()
         buffer = read_reg(dataBase)
+    print('Erro: registro não encontrado!')
+        
 
 def read_reg(data):
     regLength = int.from_bytes(data.read(2)) # Lê o tamanho do registro
@@ -55,12 +61,12 @@ def read_reg(data):
     reg = data.read(regLength) # Lê o registro
     return reg.decode()
 
-def insert(data, dataBase): # A função faz a inserção de um dado ou chave. Com a utilização da estratégia de Best fit.
+def insert(data, header, dataBase): # A função faz a inserção de um dado ou chave. Com a utilização da estratégia de Best fit.
     regLength = 0
     regKey = 0
     print(f'Inserção do registro de chave "{regKey}" ({regLength} bytes)')
 
-def remove(data, dataBase): # A função faz a remoção de um dado ou chave.
+def remove(data, header, dataBase): # A função faz a remoção de um dado ou chave.
     regKey = 0
     print(f'Remoção do registro de chave "{regKey}"')
 

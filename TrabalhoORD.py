@@ -67,6 +67,7 @@ def insert(data, header, dataBase): # A função faz a inserção de um dado ou 
     print(f'Inserção do registro de chave "{regKey}" ({regLength} bytes)')
 
 def remove(data, header, dataBase): # A função faz a remoção de um dado ou chave.
+    # Registro removido deve conter: <tamanho>*<byteOffset do proximo>
     regKey = 0
     print(f'Remoção do registro de chave "{regKey}"')
 

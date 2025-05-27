@@ -1,4 +1,23 @@
 from sys import argv
+from dataclasses import dataclass
+
+@dataclass
+class Movie:
+    title: str # Título
+    director: str # Diretor
+    year: int # Ano de lançamento
+    genres: list[str] # Gêneros do filme
+    time: int # Duração do filme em minutos
+    actors: list[str] # Atores do filme
+
+
+@dataclass
+class Register:
+    id: int # Identificador do registro
+    raw: str # Registro inteiro, sem modigficações, em string
+    byteOffset: int # Byte-offset do registro
+    length: int # Tamanho do registro
+    movie: Movie # Dados do filme extraídos do registro
 
 def main() -> None:
     data = None
@@ -25,8 +44,10 @@ def execute(dataBase, arqName: str):
         instructions: list = arq.read().split('\n') # Quebra o arquivo de instruções em uma lista
 
         for i in instructions:
-            dataBase.seek(0)
-            header = int.from_bytes(dataBase.read(4), signed=True)
+            dataBase.seek(0) # Volta o ponteiro para o início da base de dados
+
+            header = int.from_bytes(dataBase.read(4), signed=True)  # Cabeçalho da base de dados
+
             strInstruction: str = i.strip() # Limpa possíveis espaços no inicio e fim da linha
             instructionFlag: str = strInstruction[0] # Primeiro caracter da linha de instrução
             instructionData: str = strInstruction[1:] # Resto da linha de instrução
@@ -40,34 +61,50 @@ def execute(dataBase, arqName: str):
                     remove(instructionData, header, dataBase)
             print('')
             
-def search(regKey, dataBase): # A função faz a pesquisa de um dado ou chave
-
-    regKey = regKey.strip()
+def search(regKey, dataBase) -> Register | None: # A função faz a pesquisa de um dado ou chave
+    searchId = int(regKey)
     print(f'Busca pelo registro de chave "{regKey}"')
-    byteOffset: int = dataBase.tell()
-    buffer = read_reg(dataBase)
 
-    while buffer:
-        reg: list = buffer.split("|")
-        id = reg[0]
+    reg = read_reg(dataBase)
+    while reg != None:
+
+        if reg.id == searchId:
+            print(f'{reg.raw} ({reg.length} bytes)')
+            print(f'Local: offset = {reg.byteOffset} bytes ({''})')
+            return reg # Quebra o loop de busca pois achou o registro que estava procurando
         
-        if id == regKey:
-            print(f'{buffer} ({len(buffer)} bytes)')
-            print(f'Local: offset = {byteOffset} bytes ({''})')
-            return # Quebra o loop de busca pois achou o registro que estava procurando
-        
-        byteOffset = dataBase.tell()
-        buffer = read_reg(dataBase)
+        reg = read_reg(dataBase)
 
     print('Erro: registro não encontrado!')
         
 
-def read_reg(data):
+def read_reg(data) -> Register | None:
+
+    byteOffset = data.tell() # Lê o offset do registro
     regLength = int.from_bytes(data.read(2)) # Lê o tamanho do registro
-    if regLength <= 0: return '' # Caso o registro tenha tamanho <= 0 retorna uma string vazia
     
-    reg = data.read(regLength) # Lê o registro
-    return reg.decode()
+    if regLength <= 0: return None # Caso o registro tenha tamanho <= 0 retorna None
+    
+    buffer = data.read(regLength).decode() # Lê o registro
+    reg = buffer.split('|') # Quebra o registro em uma lista
+    
+    # Grava os dados lidos em formato de dataclasses
+    movie = Movie(
+        title= reg[1],
+        director= reg[2],
+        year= int(reg[3]),
+        genres= reg[4].split(','),
+        time= int(reg[5]),
+        actors= reg[6].split(',')
+    )
+
+    return Register(
+        id= int(reg[0]),
+        raw= buffer,
+        byteOffset= byteOffset,
+        length= regLength,
+        movie= movie
+    )
 
 def insert(data, header, dataBase): # A função faz a inserção de um dado ou chave. Com a utilização da estratégia de Best fit.
     regLength = 0

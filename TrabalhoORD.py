@@ -20,14 +20,17 @@ def main() -> None:
             data.close() # Fecha o arquivo
 
 def execute(dataBase, arqName: str):
+
     with open(arqName, "r") as arq: # Abre o arquivo de instruções
         instructions: list = arq.read().split('\n') # Quebra o arquivo de instruções em uma lista
+
         for i in instructions:
             dataBase.seek(0)
             header = int.from_bytes(dataBase.read(4), signed=True)
             strInstruction: str = i.strip() # Limpa possíveis espaços no inicio e fim da linha
             instructionFlag: str = strInstruction[0] # Primeiro caracter da linha de instrução
             instructionData: str = strInstruction[1:] # Resto da linha de instrução
+            
             match instructionFlag:
                 case "b": # Busca
                     search(instructionData, dataBase)
@@ -38,19 +41,24 @@ def execute(dataBase, arqName: str):
             print('')
             
 def search(regKey, dataBase): # A função faz a pesquisa de um dado ou chave
+
     regKey = regKey.strip()
     print(f'Busca pelo registro de chave "{regKey}"')
     byteOffset: int = dataBase.tell()
     buffer = read_reg(dataBase)
+
     while buffer:
         reg: list = buffer.split("|")
         id = reg[0]
+        
         if id == regKey:
             print(f'{buffer} ({len(buffer)} bytes)')
             print(f'Local: offset = {byteOffset} bytes ({''})')
             return # Quebra o loop de busca pois achou o registro que estava procurando
+        
         byteOffset = dataBase.tell()
         buffer = read_reg(dataBase)
+
     print('Erro: registro não encontrado!')
         
 

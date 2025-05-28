@@ -17,6 +17,7 @@ class Register:
     raw: str # Registro inteiro, sem modigficações, em string
     byteOffset: int # Byte-offset do registro
     length: int # Tamanho do registro
+    isDeleted: bool # Indica se o registro está deletado
     movie: Movie # Dados do filme extraídos do registro
 
 def main() -> None:
@@ -80,7 +81,7 @@ def search(regKey, dataBase) -> Register | None: # A função faz a pesquisa de 
 
 def read_reg(data) -> Register | None:
 
-    byteOffset = data.tell() # Lê o offset do registro
+    byteOffset = data.tell() # Lê a posição do ponteiro para salvar o byte-offset do registro
     regLength = int.from_bytes(data.read(2)) # Lê o tamanho do registro
     
     if regLength <= 0: return None # Caso o registro tenha tamanho <= 0 retorna None
@@ -103,6 +104,7 @@ def read_reg(data) -> Register | None:
         raw= buffer,
         byteOffset= byteOffset,
         length= regLength,
+        isDeleted= False,
         movie= movie
     )
 
@@ -111,10 +113,37 @@ def insert(data, header, dataBase): # A função faz a inserção de um dado ou 
     regKey = 0
     print(f'Inserção do registro de chave "{regKey}" ({regLength} bytes)')
 
-def remove(data, header, dataBase): # A função faz a remoção de um dado ou chave.
+def remove(regKey, header, dataBase) -> tuple[int, int] | None: # A função faz a remoção de um dado ou chave.
     # Registro removido deve conter: <tamanho>*<byteOffset do proximo>
-    regKey = 0
+
+    # encontrar registro
+    reg = read_reg(dataBase)
+    while reg != None:
+
+        if reg.id == int(regKey):
+            break
+
+        reg = read_reg(dataBase)
+    # salvar offset e id do registro
+    if reg == None:
+        print('Erro: registro não encontrado!')
+        return None
+    
+    rOffset = reg.byteOffset
+    rId = reg.id
+    # marcar registro como removido e adicionar o offset da cabeça da led
+    dataBase.seek(rOffset + 2)
+    dataBase.write(f'*{header}'.encode())
+    # atualizar cabeça da led
+    dataBase.seek(0)
+    dataBase.write(rOffset.to_bytes(4, signed=True))
+    #ordenar cabeçalho
+    order_led(dataBase)
+
     print(f'Remoção do registro de chave "{regKey}"')
+
+def order_led(dataBase) -> None:
+    pass
 
 if __name__ == "__main__":
     main()

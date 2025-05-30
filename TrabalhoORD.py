@@ -1,25 +1,14 @@
 from sys import argv
 from dataclasses import dataclass
 
-# @dataclass
-# class Movie:
-#     title: str # Título
-#     director: str # Diretor
-#     year: int # Ano de lançamento
-#     genres: list[str] # Gêneros do filme
-#     time: int # Duração do filme em minutos
-#     actors: list[str] # Atores do filme
-
-
 @dataclass
 class Register:
     id: int | None # Identificador do registro
-    raw: str # Registro inteiro, sem modigficações, em string
+    raw: bytes # Registro inteiro, sem modigficações, em string
     byteOffset: int # Byte-offset do registro
     length: int # Tamanho do registro
     isDeleted: bool = False # Indica se o registro está deletado
     ledPointer: int = -1
-    # movie: Movie # Dados do filme extraídos do registro
 
 def main() -> None:
     data = None
@@ -71,7 +60,7 @@ def search(regKey, dataBase) -> Register | None: # A função faz a pesquisa de 
     while reg != None:
 
         if reg.id == searchId:
-            print(f'{reg.raw} ({reg.length} bytes)')
+            print(f'{reg.raw.decode()} ({reg.length} bytes)')
             print(f'Local: offset = {reg.byteOffset} bytes ({''})')
             return reg # Quebra o loop de busca pois achou o registro que estava procurando
         
@@ -87,42 +76,29 @@ def read_reg(data) -> Register | None:
     
     if regLength <= 0: return None # Caso o registro tenha tamanho <= 0 retorna None
     
-    checkRemove = data.read(1).decode()
+    byteReg = data.read(regLength)
 
-    if checkRemove == '*':
-        pointer = int.from_bytes(data.read(4), signed=True)
-        data.seek(byteOffset + regLength + 2)
+    if byteReg.startswith(b'*'):
+        
+        pointer = int.from_bytes(byteReg[1:5])
 
         return Register(
             id= None,
-            raw= f'*{pointer}',
+            raw= byteReg,
             byteOffset= byteOffset,
             length= regLength,
             isDeleted= True,
             ledPointer= pointer
         )
-
-    data.seek(byteOffset + 2)
-    buffer = data.read(regLength).decode() # Lê o registro
-    reg = buffer.split('|') # Quebra o registro em uma lista
     
-    # Grava os dados lidos em formato de dataclasses
-    # movie = Movie(
-    #     title= reg[1],
-    #     director= reg[2],
-    #     year= int(reg[3]),
-    #     genres= reg[4].split(','),
-    #     time= int(reg[5]),
-    #     actors= reg[6].split(',')
-    # )
-
+    reg = byteReg.decode().split('|')
     return Register(
         id= int(reg[0]),
-        raw= buffer,
+        raw= byteReg,
         byteOffset= byteOffset,
-        length= regLength,
-        # movie= movie
+        length= regLength
     )
+
 
 def insert(data, header, dataBase): # A função faz a inserção de um dado ou chave. Com a utilização da estratégia de Best fit.
     regLength = 0
@@ -130,7 +106,6 @@ def insert(data, header, dataBase): # A função faz a inserção de um dado ou 
     print(f'Inserção do registro de chave "{regKey}" ({regLength} bytes)')
 
 def remove(regKey, header, dataBase) -> tuple[int, int] | None: # A função faz a remoção de um dado ou chave.
-    # Registro removido deve conter: <tamanho>*<byteOffset do proximo>
     rId = int(regKey)
     print(f'Remoção do registro de chave "{rId}"')
     # encontrar registro
@@ -145,47 +120,52 @@ def remove(regKey, header, dataBase) -> tuple[int, int] | None: # A função faz
     if reg == None:
         print('Erro: registro não encontrado!')
         return None
+
+    # marcar registro como removido e adicionar o offset da cabeça da led
     
+    dataBase.seek(reg.byteOffset + 2)
+    dataBase.write(b'*' + header.to_bytes(4, signed=True) + reg.raw[5:])
+
+    # atualizar cabeça da led
+    
+    dataBase.seek(0)
+    dataBase.write(reg.byteOffset.to_bytes(4, signed=True))
+
     print(f'Registro removido! ({reg.length} bytes)')
     print(f'Local: offset = {reg.byteOffset} bytes ({''})')
-
-    rOffset = reg.byteOffset
-    # marcar registro como removido e adicionar o offset da cabeça da led
-    dataBase.seek(rOffset + 2)
-    dataBase.write('*'.encode())
-    dataBase.write(header.to_bytes(4, signed=True))
-    # atualizar cabeça da led
-    dataBase.seek(0)
-    dataBase.write(rOffset.to_bytes(4, signed=True))
-    #ordenar cabeçalho
-    order_led(dataBase)
-
-
-def order_led(dataBase) -> None:
-    pass
-
-def print_led(dataBase) -> None:
+    
+def read_led(header, dataBase) -> list[tuple[int, int]]:
     LED: list[tuple[int, int]] = []
-
-    header = int.from_bytes(dataBase.read(4), signed=True)
 
     if header != -1:
         dataBase.seek(header)
 
         reg = read_reg(dataBase)
-        while reg != None and reg.isDeleted and reg.ledPointer != -1:
+        while reg != None and reg.isDeleted:
+
+            if reg.ledPointer == -1:
+                LED.append((reg.byteOffset, reg.length))
+                LED.append((-1, -1))
+                break
 
             LED.append((reg.byteOffset, reg.length))
             dataBase.seek(reg.ledPointer)
             reg = read_reg(dataBase)
 
+    return LED
+
+def print_led(dataBase) -> None:
+    header = int.from_bytes(dataBase.read(4), signed=True)
+    LED: list[tuple[int, int]] = read_led(header, dataBase)
+
     strLED = 'LED'
     for i in LED:
-        strLED += f' -> [offset: {i[0]}, tam: {i[1]}]'
-    strLED += ' -> [offset: -1]'
+        strOffset = f' -> [offset: {i[0]}'
+        strLength = f', tam: {i[1]}' if i[1] != -1 else ''
+        strLED +=  strOffset + strLength + ']'
 
     print(strLED)
-    print(f'Total: {len(LED)} espaços disponíveis')
+    print(f'Total: {len(LED) - 1} espaços disponíveis')
     print('A LED foi impressa com sucesso!')
 
 if __name__ == "__main__":

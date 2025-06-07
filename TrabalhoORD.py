@@ -2,8 +2,6 @@ from sys import argv
 from dataclasses import dataclass
 import traceback
 
-
-
 @dataclass
 class Register:
     id: int | None # Identificador do registro
@@ -27,7 +25,6 @@ def main() -> None:
             case "-c": # A funcionalidade de compactação do arquivo filmes.dat também será acessada via linha de comando.
                 pass
     except Exception as err:
-        print('Erro: ', err)
         traceback.print_exc()
     finally: # Roda depois de tudo, mesmo se cair no except
         if data: # Caso o arquivo ainda esteja aberto
@@ -47,7 +44,7 @@ def execute(dataBase, arqName: str):
 
             strInstruction: str = i.strip() # Limpa possíveis espaços no inicio e fim da linha
             instructionFlag: str = strInstruction[0] # Primeiro caracter da linha de instrução
-            instructionData: str = strInstruction[1:] # Resto da linha de instrução
+            instructionData: str = strInstruction[2:] # Resto da linha de instrução (pulando o espaço)
             
             match instructionFlag:
                 case "b": # Busca
@@ -108,9 +105,46 @@ def read_reg(data) -> Register | None:
 
 
 def insert(data, header, dataBase): # A função faz a inserção de um dado ou chave. Com a utilização da estratégia de Best fit.
-    regLength = 0
-    regKey = 0
+    newReg = data.encode()
+    regLength = len(newReg)
+
+    regKey = newReg.decode().split('|')[0]
     print(f'Inserção do registro de chave "{regKey}" ({regLength} bytes)')
+
+    offset = None
+    lengthDiff = 0
+    LED = read_led(header, dataBase)
+
+    i = 0
+    while i < len(LED) - 1:
+        if LED[i][1] >= regLength:
+            offset = LED[i][0]
+            lengthDiff = LED[i][1] - regLength
+            break
+        i+=1
+    
+    previous = LED[i - 1] if i > 0 else None
+    next = LED[i + 1] if i < len(LED)-1 else -1
+    
+    if offset == None:
+        print('Local: Fim do arquivo')
+        dataBase.seek(0, 2) # Seek pro fim do arquivo
+        dataBase.write(regLength.to_bytes(2))
+        dataBase.write(newReg)
+        return
+    
+    if previous != None:
+        dataBase.seek(previous[0] + 3)
+        dataBase.write(next[0].to_bytes(4, signed=True))
+    else:
+        dataBase.seek(0)
+        dataBase.write(next[0].to_bytes(4, signed=True))
+
+    print(f'Local: offset = {offset} bytes = ({''})')
+    dataBase.seek(offset + 2)
+    dataBase.write(newReg + b' '*lengthDiff)
+
+
 
 
 def remove(regKey, header, dataBase) -> tuple[int, int] | None: # A função faz a remoção de um dado ou chave.

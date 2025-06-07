@@ -1,14 +1,18 @@
 from sys import argv
 from dataclasses import dataclass
+import traceback
+
+
 
 @dataclass
 class Register:
     id: int | None # Identificador do registro
-    raw: bytes # Registro inteiro, sem modigficações, em string
+    raw: bytes # Registro inteiro, sem modigficações, em bytes
     byteOffset: int # Byte-offset do registro
     length: int # Tamanho do registro
     isDeleted: bool = False # Indica se o registro está deletado
     ledPointer: int = -1
+
 
 def main() -> None:
     data = None
@@ -24,10 +28,12 @@ def main() -> None:
                 pass
     except Exception as err:
         print('Erro: ', err)
+        traceback.print_exc()
     finally: # Roda depois de tudo, mesmo se cair no except
         if data: # Caso o arquivo ainda esteja aberto
             print('Fechando arquivo')
             data.close() # Fecha o arquivo
+
 
 def execute(dataBase, arqName: str):
 
@@ -51,7 +57,8 @@ def execute(dataBase, arqName: str):
                 case "r": # Remoção
                     remove(instructionData, header, dataBase)
             print('')
-            
+
+
 def search(regKey, dataBase) -> Register | None: # A função faz a pesquisa de um dado ou chave
     searchId = int(regKey)
     print(f'Busca pelo registro de chave "{regKey}"')
@@ -67,7 +74,7 @@ def search(regKey, dataBase) -> Register | None: # A função faz a pesquisa de 
         reg = read_reg(dataBase)
 
     print('Erro: registro não encontrado!')
-        
+
 
 def read_reg(data) -> Register | None:
 
@@ -105,6 +112,7 @@ def insert(data, header, dataBase): # A função faz a inserção de um dado ou 
     regKey = 0
     print(f'Inserção do registro de chave "{regKey}" ({regLength} bytes)')
 
+
 def remove(regKey, header, dataBase) -> tuple[int, int] | None: # A função faz a remoção de um dado ou chave.
     rId = int(regKey)
     print(f'Remoção do registro de chave "{rId}"')
@@ -116,43 +124,69 @@ def remove(regKey, header, dataBase) -> tuple[int, int] | None: # A função faz
             break
 
         reg = read_reg(dataBase)
-    # salvar offset e id do registro
+
     if reg == None:
         print('Erro: registro não encontrado!')
         return None
 
-    # marcar registro como removido e adicionar o offset da cabeça da led
-    
+
+    LED: list[tuple[int, int]] = read_led(header, dataBase)
+    (previous, next) = best_fit(reg, LED)
+
     dataBase.seek(reg.byteOffset + 2)
-    dataBase.write(b'*' + header.to_bytes(4, signed=True) + reg.raw[5:])
+    dataBase.write(b'*' + next.to_bytes(4, signed=True))
 
-    # atualizar cabeça da led
-    
-    dataBase.seek(0)
+    if previous != None:
+        dataBase.seek(previous + 3)
+    else :
+        dataBase.seek(0)
     dataBase.write(reg.byteOffset.to_bytes(4, signed=True))
-
+    
     print(f'Registro removido! ({reg.length} bytes)')
     print(f'Local: offset = {reg.byteOffset} bytes ({''})')
+
+def best_fit(reg: Register, LED: list[int | None, int]): # (previousByteOffset, nextByteOffset)
+
+    if len(LED) == 1 or LED[0][0] == -1 or LED[0][1] > reg.length:
+
+        previous = None
+        next = LED[0][0]
+
+        return (previous , next)
     
+    i = 1
+    while i < len(LED):
+        if LED[i][0] == -1 or LED[i][1] > reg.length:
+
+            previous = LED[i - 1][0]
+            next = LED[i][0]
+
+            return (previous, next)
+        i += 1
+
+
 def read_led(header, dataBase) -> list[tuple[int, int]]:
     LED: list[tuple[int, int]] = []
 
-    if header != -1:
-        dataBase.seek(header)
+    if header == -1:
+        return [(-1, -1)]
 
-        reg = read_reg(dataBase)
-        while reg != None and reg.isDeleted:
+    dataBase.seek(header)
 
-            if reg.ledPointer == -1:
-                LED.append((reg.byteOffset, reg.length))
-                LED.append((-1, -1))
-                break
+    reg = read_reg(dataBase)
+    while reg != None and reg.isDeleted:
 
+        if reg.ledPointer == -1:
             LED.append((reg.byteOffset, reg.length))
-            dataBase.seek(reg.ledPointer)
-            reg = read_reg(dataBase)
+            break
 
+        LED.append((reg.byteOffset, reg.length))
+        dataBase.seek(reg.ledPointer)
+        reg = read_reg(dataBase)
+
+    LED.append((-1, -1))
     return LED
+
 
 def print_led(dataBase) -> None:
     header = int.from_bytes(dataBase.read(4), signed=True)

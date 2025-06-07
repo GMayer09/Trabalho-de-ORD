@@ -23,7 +23,9 @@ def main() -> None:
             case "-p": # A funcionalidade de impressão da LED também será acessada via linha de comando.
                 print_led(data)
             case "-c": # A funcionalidade de compactação do arquivo filmes.dat também será acessada via linha de comando.
-                pass
+                compact(data)
+            case "-d":
+                print(data.read())
     except Exception as err:
         traceback.print_exc()
     finally: # Roda depois de tudo, mesmo se cair no except
@@ -54,6 +56,8 @@ def execute(dataBase, arqName: str):
                 case "r": # Remoção
                     remove(instructionData, header, dataBase)
             print('')
+        
+    print(f'As operações do arquivo dados/{arqName} foram executadas com sucesso!')
 
 
 def search(regKey, dataBase) -> Register | None: # A função faz a pesquisa de um dado ou chave
@@ -145,8 +149,6 @@ def insert(data, header, dataBase): # A função faz a inserção de um dado ou 
     dataBase.write(newReg + b' '*lengthDiff)
 
 
-
-
 def remove(regKey, header, dataBase) -> tuple[int, int] | None: # A função faz a remoção de um dado ou chave.
     rId = int(regKey)
     print(f'Remoção do registro de chave "{rId}"')
@@ -178,6 +180,7 @@ def remove(regKey, header, dataBase) -> tuple[int, int] | None: # A função faz
     
     print(f'Registro removido! ({reg.length} bytes)')
     print(f'Local: offset = {reg.byteOffset} bytes ({''})')
+
 
 def best_fit(reg: Register, LED: list[int | None, int]): # (previousByteOffset, nextByteOffset)
 
@@ -235,6 +238,21 @@ def print_led(dataBase) -> None:
     print(strLED)
     print(f'Total: {len(LED) - 1} espaços disponíveis')
     print('A LED foi impressa com sucesso!')
+
+def compact(dataBase) -> None:
+    with open("filmes2.dat", "wb+") as arq:
+
+        arq.write((-1).to_bytes(4, signed=True))
+
+        reg = read_reg(dataBase)
+        while reg is not None:
+            
+            if not reg.isDeleted:
+
+                arq.write(reg.length.to_bytes(2))
+                arq.write(reg.raw)
+                
+            reg = read_reg(dataBase)
 
 if __name__ == "__main__":
     main()

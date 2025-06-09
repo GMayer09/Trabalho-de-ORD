@@ -69,7 +69,7 @@ def search(regKey, dataBase) -> Register | None: # A função faz a pesquisa de 
 
         if reg.id == searchId:
             print(f'{reg.raw.decode()} ({reg.length} bytes)')
-            print(f'Local: offset = {reg.byteOffset} bytes ({''})')
+            print(f'Local: offset = {reg.byteOffset} bytes ({hex(reg.byteOffset)})')
             return reg # Quebra o loop de busca pois achou o registro que estava procurando
         
         reg = read_reg(dataBase)
@@ -86,7 +86,7 @@ def read_reg(data) -> Register | None:
     
     byteReg = data.read(regLength)
 
-    if byteReg.startswith(b'*'):
+    if byteReg.startswith(b'*'): # Caso o registro esteja marcado como removido
         
         pointer = int.from_bytes(byteReg[1:5])
 
@@ -131,7 +131,7 @@ def insert(data, header, dataBase): # A função faz a inserção de um dado ou 
     next = LED[i + 1] if i < len(LED)-1 else -1
     
     if offset == None:
-        print('Local: Fim do arquivo')
+        print('Local: fim do arquivo')
         dataBase.seek(0, 2) # Seek pro fim do arquivo
         dataBase.write(regLength.to_bytes(2))
         dataBase.write(newReg)
@@ -144,7 +144,7 @@ def insert(data, header, dataBase): # A função faz a inserção de um dado ou 
         dataBase.seek(0)
         dataBase.write(next[0].to_bytes(4, signed=True))
 
-    print(f'Local: offset = {offset} bytes = ({''})')
+    print(f'Local: offset = {offset} bytes ({hex(offset)})')
     dataBase.seek(offset + 2)
     dataBase.write(newReg + b' '*lengthDiff)
 
@@ -179,7 +179,7 @@ def remove(regKey, header, dataBase) -> tuple[int, int] | None: # A função faz
     dataBase.write(reg.byteOffset.to_bytes(4, signed=True))
     
     print(f'Registro removido! ({reg.length} bytes)')
-    print(f'Local: offset = {reg.byteOffset} bytes ({''})')
+    print(f'Local: offset = {reg.byteOffset} bytes ({hex(reg.byteOffset)})')
 
 
 def best_fit(reg: Register, LED: list[int | None, int]): # (previousByteOffset, nextByteOffset)

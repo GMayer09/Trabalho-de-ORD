@@ -6,7 +6,7 @@ import os
 @dataclass
 class Register:
     id: int | None # Identificador do registro
-    raw: bytes # Registro inteiro, sem modigficações, em bytes
+    raw: bytes # Registro inteiro, sem modificações, em bytes
     byteOffset: int # Byte-offset do registro
     length: int # Tamanho do registro
     isDeleted: bool = False # Indica se o registro está deletado
@@ -72,11 +72,12 @@ def search(regKey, dataBase) -> None: # A função faz a busca de um registro pe
             strReg = reg.raw.decode()
             lstReg = strReg.split('|')
             regLength = reg.length
+
+            # Remove espaço vazio no fim do arquivo caso ele exista
             if lstReg[-1].startswith('*'):
                 emptySpace = len(lstReg[-1])
                 regLength -= emptySpace
                 strReg = strReg[:-emptySpace]
-
 
             print(f'{strReg} ({regLength} bytes)')
             print(f'Local: offset = {reg.byteOffset} bytes ({hex(reg.byteOffset)})')
@@ -250,7 +251,7 @@ def print_led(dataBase) -> None: # Imprime a LED
         if i[0] != -1:
             strLED += f' -> [offset: {i[0]}, tam: {i[1]}]'
         else:
-            strLED += ' -> fim'
+            strLED += ' -> [offset: -1]'
 
     print(strLED)
     print(f'Total: {len(LED) - 1} espaços disponíveis')

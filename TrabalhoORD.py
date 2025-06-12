@@ -1,6 +1,7 @@
 from sys import argv
 from dataclasses import dataclass
 import traceback
+import os
 
 @dataclass
 class Register:
@@ -9,7 +10,7 @@ class Register:
     byteOffset: int # Byte-offset do registro
     length: int # Tamanho do registro
     isDeleted: bool = False # Indica se o registro está deletado
-    ledPointer: int = -1
+    ledPointer: int = -1 # Ponteiro para o proximo registro da LED
 
 
 def main() -> None:
@@ -28,21 +29,20 @@ def main() -> None:
                 print(data.read())
     except Exception as err:
         traceback.print_exc()
-    finally: # Roda depois de tudo, mesmo se cair no except
+    finally:
         if data: # Caso o arquivo ainda esteja aberto
-            print('Fechando arquivo')
             data.close() # Fecha o arquivo
 
 
 def execute(dataBase, arqName: str):
 
-    with open(arqName, "r") as arq: # Abre o arquivo de instruções
+    with open(arqName, "r") as arq:
         instructions: list = arq.read().split('\n') # Quebra o arquivo de instruções em uma lista
 
         for i in instructions:
-            dataBase.seek(0) # Volta o ponteiro para o início da base de dados
+            dataBase.seek(0)
 
-            header = int.from_bytes(dataBase.read(4), signed=True)  # Cabeçalho da base de dados
+            header = int.from_bytes(dataBase.read(4), signed=True)
 
             strInstruction: str = i.strip() # Limpa possíveis espaços no inicio e fim da linha
             instructionFlag: str = strInstruction[0] # Primeiro caracter da linha de instrução
@@ -60,7 +60,7 @@ def execute(dataBase, arqName: str):
     print(f'As operações do arquivo dados/{arqName} foram executadas com sucesso!')
 
 
-def search(regKey, dataBase) -> Register | None: # A função faz a pesquisa de um dado ou chave
+def search(regKey, dataBase) -> Register | None: # A função faz a busca de um registro pela chave
     searchId = int(regKey)
     print(f'Busca pelo registro de chave "{regKey}"')
 
@@ -79,16 +79,16 @@ def search(regKey, dataBase) -> Register | None: # A função faz a pesquisa de 
 
 def read_reg(data) -> Register | None:
 
-    byteOffset = data.tell() # Lê a posição do ponteiro para salvar o byte-offset do registro
-    regLength = int.from_bytes(data.read(2)) # Lê o tamanho do registro
+    byteOffset = data.tell()
+    regLength = int.from_bytes(data.read(2))
     
-    if regLength <= 0: return None # Caso o registro tenha tamanho <= 0 retorna None
+    if regLength <= 0: return None
     
     byteReg = data.read(regLength)
 
     if byteReg.startswith(b'*'): # Caso o registro esteja marcado como removido
         
-        pointer = int.from_bytes(byteReg[1:5])
+        pointer = int.from_bytes(byteReg[1:5]) # Ponteiro para o proximo registro da LED
 
         return Register(
             id= None,
@@ -97,7 +97,7 @@ def read_reg(data) -> Register | None:
             length= regLength,
             isDeleted= True,
             ledPointer= pointer
-        )
+        ) # Estrutura do registro removido
     
     reg = byteReg.decode().split('|')
     return Register(
@@ -105,10 +105,10 @@ def read_reg(data) -> Register | None:
         raw= byteReg,
         byteOffset= byteOffset,
         length= regLength
-    )
+    ) # Estrutura do registro
 
 
-def insert(data, header, dataBase): # A função faz a inserção de um dado ou chave. Com a utilização da estratégia de Best fit.
+def insert(data, header, dataBase): # A função faz a inserção de um dado ou chave.
     newReg = data.encode()
     regLength = len(newReg)
 
@@ -119,6 +119,7 @@ def insert(data, header, dataBase): # A função faz a inserção de um dado ou 
     lengthDiff = 0
     LED = read_led(header, dataBase)
 
+    # Encontra a posição certa para inserir o registro
     i = 0
     while i < len(LED) - 1:
         if LED[i][1] >= regLength:
@@ -126,32 +127,33 @@ def insert(data, header, dataBase): # A função faz a inserção de um dado ou 
             lengthDiff = LED[i][1] - regLength
             break
         i+=1
-    
+    # Salva os offsets dos registros da LED que precisarão ser atualizados (caso eles existam)
     previous = LED[i - 1] if i > 0 else None
     next = LED[i + 1] if i < len(LED)-1 else -1
     
     if offset == None:
         print('Local: fim do arquivo')
-        dataBase.seek(0, 2) # Seek pro fim do arquivo
+        dataBase.seek(0, 2) # Seek para o fim do arquivo
         dataBase.write(regLength.to_bytes(2))
         dataBase.write(newReg)
         return
     
     if previous != None:
-        dataBase.seek(previous[0] + 3)
+        dataBase.seek(previous[0] + 3) # Move o ponteiro para o registro "anterior" ao best-fit, pulando tamanho e *
         dataBase.write(next[0].to_bytes(4, signed=True))
     else:
-        dataBase.seek(0)
+        dataBase.seek(0) # Move o ponteiro para o cabeçalho do arquivo
         dataBase.write(next[0].to_bytes(4, signed=True))
 
     print(f'Local: offset = {offset} bytes ({hex(offset)})')
     dataBase.seek(offset + 2)
-    dataBase.write(newReg + b' '*lengthDiff)
+    dataBase.write(newReg + b' '*lengthDiff) # Insere o novo registro na posição encontrada
 
 
 def remove(regKey, header, dataBase) -> tuple[int, int] | None: # A função faz a remoção de um dado ou chave.
     rId = int(regKey)
     print(f'Remoção do registro de chave "{rId}"')
+
     # encontrar registro
     reg = read_reg(dataBase)
     while reg != None:
@@ -169,9 +171,11 @@ def remove(regKey, header, dataBase) -> tuple[int, int] | None: # A função faz
     LED: list[tuple[int, int]] = read_led(header, dataBase)
     (previous, next) = best_fit(reg, LED)
 
+    # Marca o registro como removido
     dataBase.seek(reg.byteOffset + 2)
     dataBase.write(b'*' + next.to_bytes(4, signed=True))
 
+    # Atualiza a LED
     if previous != None:
         dataBase.seek(previous + 3)
     else :
@@ -182,8 +186,9 @@ def remove(regKey, header, dataBase) -> tuple[int, int] | None: # A função faz
     print(f'Local: offset = {reg.byteOffset} bytes ({hex(reg.byteOffset)})')
 
 
-def best_fit(reg: Register, LED: list[int | None, int]): # (previousByteOffset, nextByteOffset)
+def best_fit(reg: Register, LED: list[int | None, int]): # Encontra a posição certa para inserir um registro na LED e retorna o anterior e sucessor dele
 
+    # Caso a LED esteja vazia ou a posição certa do registro seja a cabeça da LED
     if len(LED) == 1 or LED[0][0] == -1 or LED[0][1] > reg.length:
 
         previous = None
@@ -191,6 +196,7 @@ def best_fit(reg: Register, LED: list[int | None, int]): # (previousByteOffset, 
 
         return (previous , next)
     
+    # Caso contrário, itera pela LED procurando o melhor espaço
     i = 1
     while i < len(LED):
         if LED[i][0] == -1 or LED[i][1] > reg.length:
@@ -202,10 +208,10 @@ def best_fit(reg: Register, LED: list[int | None, int]): # (previousByteOffset, 
         i += 1
 
 
-def read_led(header, dataBase) -> list[tuple[int, int]]:
-    LED: list[tuple[int, int]] = []
+def read_led(header, dataBase) -> list[tuple[int, int]]: # Lê a LED do arquivo em formato de lista de tuplas [offset, tamanho]
+    LED: list[tuple[int, int]] = [] # Define a LED como uma lista vazia
 
-    if header == -1:
+    if header == -1: # Caso o cabeçalho seja -1, a LED está vazia
         return [(-1, -1)]
 
     dataBase.seek(header)
@@ -213,19 +219,19 @@ def read_led(header, dataBase) -> list[tuple[int, int]]:
     reg = read_reg(dataBase)
     while reg != None and reg.isDeleted:
 
-        if reg.ledPointer == -1:
-            LED.append((reg.byteOffset, reg.length))
-            break
+        if reg.ledPointer == -1: # Caso estivermos no final da LED
+            LED.append((reg.byteOffset, reg.length)) # Concatena o ultimmo elemento
+            break # Quebra o loop
 
         LED.append((reg.byteOffset, reg.length))
         dataBase.seek(reg.ledPointer)
         reg = read_reg(dataBase)
 
-    LED.append((-1, -1))
+    LED.append((-1, -1)) # Final padrão da LED
     return LED
 
 
-def print_led(dataBase) -> None:
+def print_led(dataBase) -> None: # Imprime a LED
     header = int.from_bytes(dataBase.read(4), signed=True)
     LED: list[tuple[int, int]] = read_led(header, dataBase)
 
@@ -240,9 +246,10 @@ def print_led(dataBase) -> None:
     print('A LED foi impressa com sucesso!')
 
 def compact(dataBase) -> None:
-    with open("filmes2.dat", "wb+") as arq:
+    with open("aux.dat", "wb") as arq:
 
-        arq.write((-1).to_bytes(4, signed=True))
+        header = dataBase.read(4) # Pula o cabeçalho
+        arq.write((-1).to_bytes(4, signed=True)) # Grava um cabeçalho padrão
 
         reg = read_reg(dataBase)
         while reg is not None:
@@ -253,6 +260,8 @@ def compact(dataBase) -> None:
                 arq.write(reg.raw)
                 
             reg = read_reg(dataBase)
+        dataBase.close() # Fecha o arquivo principal
+        os.rename("aux.dat", "filmes.dat") # Renomeia o arquivo auxiliar para "filmes.dat"
 
 if __name__ == "__main__":
     main()

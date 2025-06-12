@@ -57,10 +57,10 @@ def execute(dataBase, arqName: str):
                     remove(instructionData, header, dataBase)
             print('')
         
-    print(f'As operações do arquivo dados/{arqName} foram executadas com sucesso!')
+    print(f'As operações do arquivo dados/{arqName} foram executadas com sucesso!\n')
 
 
-def search(regKey, dataBase) -> Register | None: # A função faz a busca de um registro pela chave
+def search(regKey, dataBase) -> None: # A função faz a busca de um registro pela chave
     searchId = int(regKey)
     print(f'Busca pelo registro de chave "{regKey}"')
 
@@ -68,13 +68,23 @@ def search(regKey, dataBase) -> Register | None: # A função faz a busca de um 
     while reg != None:
 
         if reg.id == searchId:
-            print(f'{reg.raw.decode()} ({reg.length} bytes)')
+
+            strReg = reg.raw.decode()
+            lstReg = strReg.split('|')
+            regLength = reg.length
+            if lstReg[-1].startswith('*'):
+                emptySpace = len(lstReg[-1])
+                regLength -= emptySpace
+                strReg = strReg[:-emptySpace]
+
+
+            print(f'{strReg} ({regLength} bytes)')
             print(f'Local: offset = {reg.byteOffset} bytes ({hex(reg.byteOffset)})')
-            return reg # Quebra o loop de busca pois achou o registro que estava procurando
+            return # Quebra o loop de busca pois achou o registro que estava procurando
         
         reg = read_reg(dataBase)
 
-    print('Erro: registro não encontrado!')
+    print('Erro: registro nao encontrado!')
 
 
 def read_reg(data) -> Register | None:
@@ -147,7 +157,7 @@ def insert(data, header, dataBase): # A função faz a inserção de um dado ou 
 
     print(f'Local: offset = {offset} bytes ({hex(offset)})')
     dataBase.seek(offset + 2)
-    dataBase.write(newReg + b' '*lengthDiff) # Insere o novo registro na posição encontrada
+    dataBase.write(newReg + b'*'*lengthDiff) # Insere o novo registro na posição encontrada
 
 
 def remove(regKey, header, dataBase) -> tuple[int, int] | None: # A função faz a remoção de um dado ou chave.
@@ -164,7 +174,7 @@ def remove(regKey, header, dataBase) -> tuple[int, int] | None: # A função faz
         reg = read_reg(dataBase)
 
     if reg == None:
-        print('Erro: registro não encontrado!')
+        print('Erro: registro nao encontrado!')
         return None
 
 
@@ -237,13 +247,14 @@ def print_led(dataBase) -> None: # Imprime a LED
 
     strLED = 'LED'
     for i in LED:
-        strOffset = f' -> [offset: {i[0]}'
-        strLength = f', tam: {i[1]}' if i[1] != -1 else ''
-        strLED +=  strOffset + strLength + ']'
+        if i[0] != -1:
+            strLED += f' -> [offset: {i[0]}, tam: {i[1]}]'
+        else:
+            strLED += ' -> fim'
 
     print(strLED)
     print(f'Total: {len(LED) - 1} espaços disponíveis')
-    print('A LED foi impressa com sucesso!')
+    print('A LED foi impressa com sucesso!\n')
 
 def compact(dataBase) -> None:
     with open("aux.dat", "wb") as arq:
